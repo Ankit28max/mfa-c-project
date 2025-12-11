@@ -1,14 +1,11 @@
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -O2 -Iinclude
 
-SRC = src/main.c
-OBJ = $(SRC:.c=.o)
+SRC = src/main.c src/storage.c
 TARGET = mfa
 
-all: $(TARGET)
-
-$(TARGET): $(SRC)
+all:
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)
 
 clean:
-	rm -f $(TARGET) $(OBJ)
+	del mfa.exe 2>nul || true

@@ -5,9 +5,6 @@
 #include <time.h>
 #include "../include/utils.h"
 
-#define USERNAME_LEN 48
-#define PASSWORD_LEN 48
-
 void menu() {
     puts("\n--- Secure MFA Authentication System (terminal) ---");
     puts("1. Create user");
@@ -16,45 +13,85 @@ void menu() {
     printf("Choice: ");
 }
 
-/* safe_input: read at most (len-1) chars, strip newline */
-void safe_input(char *buf, size_t len) {
-    if (!fgets(buf, (int)len, stdin)) {
-        buf[0] = '\0';
+/************* MFA LOGIN FUNCTION *************/
+void login() {
+    char username[USERNAME_LEN];
+    char password[USERNAME_LEN];
+    char otp_buf[16];
+    int generatedOTP;
+
+    printf("Enter username: ");
+    safe_input(username, sizeof(username));
+
+    User *u = find_user(username);
+
+    if (u == NULL) {
+        printf("❌ User does not exist.\n");
         return;
     }
-    size_t L = strnlen(buf, len);
-    if (L > 0 && buf[L-1] == '\n') buf[L-1] = '\0';
-    else { /* if there's leftover input, flush it */
-        int ch;
-        while ((ch = getchar()) != '\n' && ch != EOF) { }
+
+    if (u->isLocked) {
+        printf("🚫 Account is locked due to too many failures.\n");
+        return;
     }
+
+    printf("Enter password: ");
+    safe_input(password, sizeof(password));
+
+    if (!verify_password(u, password)) {
+        printf("❌ Incorrect password.\n");
+        return;
+    }
+
+    generatedOTP = rand() % 900000 + 100000;
+    printf("\n📩 Your OTP is: %d\n", generatedOTP);
+
+    int attempts = 3;
+
+    while (attempts > 0) {
+        printf("Enter OTP: ");
+        safe_input(otp_buf, sizeof(otp_buf));
+
+        if (atoi(otp_buf) == generatedOTP) {
+            printf("✅ Login successful! Welcome, %s.\n", username);
+            return;
+        }
+
+        attempts--;
+        printf("❌ Wrong OTP. Attempts left: %d\n", attempts);
+    }
+
+    printf("🚫 OTP attempts exceeded. Account locked.\n");
+    u->isLocked = 1;
 }
 
+/************* MAIN FUNCTION *************/
 int main(void) {
     srand((unsigned)time(NULL));
+
+    init_storage();
+
     char choice_buf[8];
 
-    // initialize modules (stubs for now)
-    init_storage();   // declared in utils.h / utils.c (we'll implement later)
     while (1) {
         menu();
         safe_input(choice_buf, sizeof(choice_buf));
-        if (strlen(choice_buf) == 0) continue;
 
         if (strcmp(choice_buf, "1") == 0) {
-            puts("[stub] Create user - will be implemented in commit 2.");
-            // create_user();  <-- implement in commit 2
-        } else if (strcmp(choice_buf, "2") == 0) {
-            puts("[stub] Login - will be implemented in commit 3.");
-            // login();  <-- implement in commit 3
-        } else if (strcmp(choice_buf, "3") == 0) {
-            puts("Exiting, bye.");
+            create_user();
+        } 
+        else if (strcmp(choice_buf, "2") == 0) {
+            login();
+        } 
+        else if (strcmp(choice_buf, "3") == 0) {
+            printf("Exiting...\n");
+            shutdown_storage();
             break;
-        } else {
-            puts("Invalid choice.");
+        } 
+        else {
+            printf("Invalid choice.\n");
         }
     }
 
-    shutdown_storage(); // cleanup if needed
     return 0;
 }
