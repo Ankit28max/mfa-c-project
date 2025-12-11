@@ -11,17 +11,21 @@ typedef struct {
     int isLocked;
 } User;
 
-// storage functions
+// Storage
 void init_storage(void);
+void save_storage(void);
 void shutdown_storage(void);
 void create_user(void);
 
-// helper functions
+// Helpers
+void safe_input(char *buf, size_t len);
 User* find_user(const char *name);
 int verify_password(User *u, const char *password);
-void safe_input(char *buf, size_t len);
 
-// login function
+// Logging
+void log_event(const char *event, const char *username);
+
+// Login (MFA)
 void login(void);
 
 #endif
